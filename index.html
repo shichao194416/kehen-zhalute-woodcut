@@ -2687,8 +2687,6 @@ html.stage-cover .sysbar .sb-r{opacity:0}
 
 <div class="toast" id="toast"></div>
 
-<script src="vendor/three.min.js"></script>
-<script src="gallery.js?v=20261019g"></script>
 <script>
 /* ============================================================
    刻痕 · 数字展馆  —— 全部交互为点击驱动
@@ -5778,6 +5776,29 @@ function exPattern(root){
 }
 
 /* ---------------- 07 版上草原 ---------------- */
+let galleryAssetsPromise = null;
+function ensureGalleryAssets(){
+  if(window.ZhaluteGallery) return Promise.resolve();
+  if(galleryAssetsPromise) return galleryAssetsPromise;
+  galleryAssetsPromise = new Promise((resolve, reject) => {
+    const three = document.createElement("script");
+    three.src = "vendor/three.min.js";
+    three.onload = () => {
+      const gallery = document.createElement("script");
+      gallery.src = "gallery.js?v=20261019h";
+      gallery.onload = resolve;
+      gallery.onerror = () => reject(new Error("gallery.js 加载失败"));
+      document.body.appendChild(gallery);
+    };
+    three.onerror = () => reject(new Error("three.min.js 加载失败"));
+    document.body.appendChild(three);
+  }).catch(error => {
+    galleryAssetsPromise = null;
+    throw error;
+  });
+  return galleryAssetsPromise;
+}
+
 function exVisit(root){
   root.innerHTML =
     '<div class="gal-app" id="galApp">' +
@@ -5847,16 +5868,16 @@ function exVisit(root){
     box.classList.add("on");
     return;
   }
-  try {
-    if(!window.ZhaluteGallery) throw new Error("展厅脚本未加载");
+  ensureGalleryAssets().then(() => {
+    if(!root.isConnected) return;
     const dispose = window.ZhaluteGallery.initGallery(root, { onExit: () => close() });
     window.__galleryDispose = dispose;
-  } catch(error) {
+  }).catch(error => {
     console.error("[版上草原] 三维展厅加载失败：", error);
     const box = $("#galError", root);
-    box.textContent = "三维展厅未能载入。请刷新页面，或改用 http://127.0.0.1:8123/#visit 访问。";
+    box.textContent = "三维展厅未能载入。请刷新页面后重试。";
     box.classList.add("on");
-  }
+  });
 }
 
 /* ============================================================
