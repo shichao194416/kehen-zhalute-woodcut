@@ -196,6 +196,12 @@ HALLS.forEach((hall, hallIndex) => {
   });
 });
 
+const GALLERY_WEB = IMG + "gallery-web/";
+WORKS.forEach((work, index) => {
+  work.originalImg = work.img;
+  work.img = GALLERY_WEB + String(index + 1).padStart(2, "0") + ".webp";
+});
+
 const ROOM_SIZE = 20;
 const ROOM_H = 5;
 const HALF = ROOM_SIZE / 2;
@@ -2060,6 +2066,7 @@ function initGallery(root, options = {}) {
       works: WORKS.length,
       loaded: pickables.length,
       hallCounts: HALLS.map((hall, index) => WORKS.filter(work => work.hall === index).length),
+      imageSources: WORKS.map(work => work.img),
       hover: hovered?.userData?.work?.title || null,
       detailTitle: detailOpen ? detailTitle.textContent : null,
       confirmOpen

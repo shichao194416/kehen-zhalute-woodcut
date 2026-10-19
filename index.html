@@ -5781,17 +5781,51 @@ function ensureGalleryAssets(){
   if(window.ZhaluteGallery) return Promise.resolve();
   if(galleryAssetsPromise) return galleryAssetsPromise;
   galleryAssetsPromise = new Promise((resolve, reject) => {
-    const three = document.createElement("script");
-    three.src = "vendor/three.min.js";
-    three.onload = () => {
+    const loadGalleryScript = () => {
       const gallery = document.createElement("script");
       gallery.src = "gallery.js?v=20261019h";
       gallery.onload = resolve;
       gallery.onerror = () => reject(new Error("gallery.js 加载失败"));
       document.body.appendChild(gallery);
     };
-    three.onerror = () => reject(new Error("three.min.js 加载失败"));
-    document.body.appendChild(three);
+    const threeSources = [
+      "https://unpkg.com/three@0.160.0/build/three.min.js",
+      "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js",
+      "vendor/three.min.js"
+    ];
+    let index = 0;
+    const tryThree = () => {
+      if(index >= threeSources.length){
+        reject(new Error("three.min.js 加载失败"));
+        return;
+      }
+      const three = document.createElement("script");
+      let settled = false;
+      const timer = setTimeout(() => {
+        if(settled) return;
+        settled = true;
+        three.remove();
+        index += 1;
+        tryThree();
+      }, 9000);
+      three.src = threeSources[index];
+      three.onload = () => {
+        if(settled) return;
+        settled = true;
+        clearTimeout(timer);
+        loadGalleryScript();
+      };
+      three.onerror = () => {
+        if(settled) return;
+        settled = true;
+        clearTimeout(timer);
+        three.remove();
+        index += 1;
+        tryThree();
+      };
+      document.body.appendChild(three);
+    };
+    tryThree();
   }).catch(error => {
     galleryAssetsPromise = null;
     throw error;
