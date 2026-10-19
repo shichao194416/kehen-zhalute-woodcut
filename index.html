@@ -5801,28 +5801,33 @@ function ensureGalleryAssets(){
       }
       const three = document.createElement("script");
       let settled = false;
-      const timer = setTimeout(() => {
-        if(settled) return;
-        settled = true;
-        three.remove();
-        index += 1;
-        tryThree();
-      }, 9000);
-      three.src = threeSources[index];
-      three.onload = () => {
+      let timer;
+      const finishThree = () => {
         if(settled) return;
         settled = true;
         clearTimeout(timer);
         loadGalleryScript();
       };
-      three.onerror = () => {
+      const failThree = () => {
         if(settled) return;
+        if(window.THREE){
+          finishThree();
+          return;
+        }
         settled = true;
         clearTimeout(timer);
         three.remove();
         index += 1;
         tryThree();
       };
+      timer = setTimeout(() => {
+        if(settled) return;
+        if(window.THREE) finishThree();
+        else failThree();
+      }, 20000);
+      three.src = threeSources[index];
+      three.onload = finishThree;
+      three.onerror = failThree;
       document.body.appendChild(three);
     };
     tryThree();
