@@ -2990,6 +2990,7 @@ function buildRing(){
   /* 转到第 i 张（取最近的一圈，别倒着绕远路） */
   function focusIndex(i, hold){
     const want = -i * STEP;
+    if(i !== state.active) setActive(i);
     state.target = want + Math.round((state.angle - want) / 360) * 360;
     state.velocity = 0;
     state.holdUntil = performance.now() + (hold || 2600);
@@ -3042,6 +3043,8 @@ function buildRing(){
     state.velocity = v;
     if(Math.abs(v) > 60) state.dir = Math.sign(v);
     state.target = Math.round((state.angle + v * (0.18 + S.momentum * 1.5) * 0.55) / STEP) * STEP;
+    const targetIndex = ((Math.round(-state.target / STEP) % count) + count) % count || 0;
+    if(targetIndex !== state.active) setActive(targetIndex);
     state.holdUntil = performance.now() + 1800;
     wake();
   }
