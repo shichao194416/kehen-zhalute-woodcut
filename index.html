@@ -2842,13 +2842,26 @@ function buildRing(){
   let raf = 0, armed = false, decorated = false;
   let stepT = 0;
 
+  function rotationTarget(i, turn){
+    const base = -i * STEP;
+    const delta = state.angle - base;
+    let target;
+    if(turn > 0) target = base + Math.floor(delta / 360) * 360;
+    else if(turn < 0) target = base + Math.ceil(delta / 360) * 360;
+    else target = base + Math.round(delta / 360) * 360;
+    if(turn > 0 && target >= state.angle - 0.001) target -= 360;
+    if(turn < 0 && target <= state.angle + 0.001) target += 360;
+    return target;
+  }
+
   /* 自动走位用定时器，不用逐帧判断——停下来之后帧循环会退出，帧里排队会排不上 */
   function scheduleStep(){
     clearTimeout(stepT);
     stepT = setTimeout(() => {
       if(!state.live || !state.introDone || state.paused){ scheduleStep(); return; }
-      if(state.hover || state.drag || performance.now() < state.holdUntil){ scheduleStep(); return; }
-      state.target = nearest(state.angle) + STEP * state.dir;
+      if(state.hover || state.drag || state.target !== null || Math.abs(state.velocity) > SETTLE_SPEED || performance.now() < state.holdUntil){ scheduleStep(); return; }
+      const next = (state.active + 1) % count;
+      state.target = rotationTarget(next, 1);
       wake();
       scheduleStep();
     }, Math.max(1200, S.interval * 1000));
@@ -2988,16 +3001,15 @@ function buildRing(){
   function wake(){ if(!raf && state.live) raf = requestAnimationFrame(frame); }
 
   /* 转到第 i 张（取最近的一圈，别倒着绕远路） */
-  function focusIndex(i, hold){
-    const want = -i * STEP;
+  function focusIndex(i, hold, turn){
     if(i !== state.active) setActive(i);
-    state.target = want + Math.round((state.angle - want) / 360) * 360;
+    state.target = rotationTarget(i, turn || 0);
     state.velocity = 0;
     state.holdUntil = performance.now() + (hold || 2600);
     state.dir = (state.target > state.angle) ? 1 : -1;
     wake();
   }
-  function stepBy(d){ focusIndex(((state.active + d) % count + count) % count); }
+  function stepBy(d){ focusIndex(((state.active + d) % count + count) % count, 2600, d); }
 
   root.addEventListener("pointerdown", e => {
     state.suppressClick = false;
@@ -3093,7 +3105,7 @@ function buildRing(){
     wheelLock = now + 200;
     /* 连翻时用"待走的目标准位"推下一步，别拿还没跟上的 active 去算 */
     const from = state.target === null ? state.active : Math.round(-state.target / STEP);
-    focusIndex(((from + dir) % count + count) % count, 1600);
+    focusIndex(((from + dir) % count + count) % count, 1600, dir);
   }, { passive: false });
   initSling(capOpen, () => open(list[state.active].id));
   new ResizeObserver(() => { measure(); wake(); }).observe(root);
