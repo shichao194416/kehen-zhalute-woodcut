@@ -281,8 +281,7 @@ html:not(.stage-cover) .hall-bg{opacity:.98}
   flex:0 0 auto;display:flex;align-items:flex-end;justify-content:space-between;
   gap:16px 28px;padding:14px 0 16px;border-top:1px solid var(--line);flex-wrap:wrap;
 }
-.ring-cap.swap{animation:capSwap .5s ease}
-@keyframes capSwap{from{opacity:.2}to{opacity:1}}
+.ring-cap{opacity:1;visibility:visible}
 .ring-cap-l{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;min-width:0}
 .ring-no{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--verm-l)}
 .ring-cap h3{font-size:clamp(18px,2vw,25px)}
@@ -2952,8 +2951,10 @@ function buildRing(){
       cards[i].style.setProperty("--d", (S.depthFade * Math.pow((1 - facing) / 2, 1.25)).toFixed(3));
     }
 
-    const index = ((Math.round(-state.angle / STEP) % count) + count) % count || 0;
-    if(index !== state.active) setActive(index);
+    if(state.target === null && Math.abs(state.velocity) < 0.03 && !state.drag){
+      const index = ((Math.round(-state.angle / STEP) % count) + count) % count || 0;
+      if(index !== state.active) setActive(index);
+    }
   }
 
   function setActive(i){
@@ -2966,7 +2967,6 @@ function buildRing(){
     const src = $("#ringSrc"); if(src) src.textContent = e.cap || "";
     capPos.textContent = e.no + " / " + String(count).padStart(2, "0");
     cards.forEach((c, k) => { c.toggleAttribute("data-front", k === i); });
-    cap.classList.remove("swap"); void cap.offsetWidth; cap.classList.add("swap");
     /* 到正面的那张走一道过版压痕 */
     const scan = cards[i].querySelector(".scanner");
     if(scan){
